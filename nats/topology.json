@@ -1,0 +1,42 @@
+{
+  "schema": "happy-wakey.jetstream-topology.v1",
+  "streams": [
+    {
+      "name": "HAPPY_WAKEY_OPERATIONS",
+      "subjects": ["happy-wakey.operations"],
+      "storage": "file",
+      "retention": "workqueue",
+      "discard": "new",
+      "num_replicas": 3,
+      "max_age_seconds": 300,
+      "max_message_bytes": 4096,
+      "duplicate_window_seconds": 300,
+      "allow_direct": false
+    },
+    {
+      "name": "HAPPY_WAKEY_RESPONSES",
+      "subjects": ["happy-wakey.responses.*"],
+      "storage": "file",
+      "retention": "limits",
+      "discard": "new",
+      "num_replicas": 3,
+      "max_age_seconds": 300,
+      "max_messages_per_subject": 1,
+      "max_message_bytes": 921600,
+      "duplicate_window_seconds": 300,
+      "allow_direct": true
+    }
+  ],
+  "consumers": [
+    {
+      "stream": "HAPPY_WAKEY_OPERATIONS",
+      "durable_name": "happy-wakey-api",
+      "filter_subject": "happy-wakey.operations",
+      "delivery": "pull",
+      "ack_policy": "explicit",
+      "ack_wait_seconds": 30,
+      "max_deliver": 10,
+      "max_ack_pending": 256
+    }
+  ]
+}
