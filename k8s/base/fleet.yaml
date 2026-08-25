@@ -27,9 +27,21 @@ metadata:
 data:
   HAPPY_WAKEY_SHARED_AUTH_BASE: https://auth.oresoftware.dev
   HAPPY_WAKEY_SHARED_AUTH_AUDIENCE: happy-wakey
-  HAPPY_WAKEY_API_BASE: http://happy-wakey-api.happy-wakey.svc.cluster.local:8080
-  HAPPY_WAKEY_API_TCP: happy-wakey-api.happy-wakey.svc.cluster.local:8081
-  HAPPY_WAKEY_INTERACTION_MODES: direct_db_read,stateless_http,stateful_tcp,async_nats
+  HAPPY_WAKEY_API_BASE: https://api.happy-wakey.internal
+  HAPPY_WAKEY_API_TCP_BIND: 0.0.0.0:8081
+  HAPPY_WAKEY_API_TCP_ADDRESS: happy-wakey-api.happy-wakey.svc.cluster.local:8081
+  HAPPY_WAKEY_API_TCP_SERVER_NAME: happy-wakey-api.happy-wakey.svc.cluster.local
+  HAPPY_WAKEY_API_TCP_TLS_CERT: /var/run/secrets/happy-wakey/api-tls/tls.crt
+  HAPPY_WAKEY_API_TCP_TLS_KEY: /var/run/secrets/happy-wakey/api-tls/tls.key
+  HAPPY_WAKEY_API_TCP_CA_FILE: /var/run/secrets/happy-wakey/api-tls/ca.crt
+  HAPPY_WAKEY_INTERACTION_MODE: stateless_https
+  HAPPY_WAKEY_DATABASE_FLAVOR: postgres
+  HAPPY_WAKEY_DATABASE_MAX_CONNECTIONS: '4'
+  HAPPY_WAKEY_NATS_URL: tls://nats.happy-wakey.svc.cluster.local:4222
+  HAPPY_WAKEY_NATS_CREDENTIALS_FILE: /var/run/secrets/happy-wakey/nats/credentials.creds
+  HAPPY_WAKEY_NATS_REQUEST_STREAM: HAPPY_WAKEY_OPERATIONS
+  HAPPY_WAKEY_NATS_RESPONSE_STREAM: HAPPY_WAKEY_RESPONSES
+  HAPPY_WAKEY_NATS_CONSUMER: happy-wakey-api
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -77,11 +89,13 @@ spec:
                 secretKeyRef:
                   name: happy-wakey-api-runtime
                   key: shared-auth-introspect-secret
-            - name: HAPPY_WAKEY_NATS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: happy-wakey-api-runtime
-                  key: nats-url
+          volumeMounts:
+            - name: api-tls
+              mountPath: /var/run/secrets/happy-wakey/api-tls
+              readOnly: true
+            - name: api-nats
+              mountPath: /var/run/secrets/happy-wakey/nats
+              readOnly: true
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -105,6 +119,18 @@ spec:
             limits:
               cpu: '1'
               memory: 512Mi
+      volumes:
+        - name: api-tls
+          secret:
+            secretName: happy-wakey-api-tls
+            defaultMode: 0400
+        - name: api-nats
+          secret:
+            secretName: happy-wakey-api-nats
+            defaultMode: 0400
+            items:
+              - key: credentials
+                path: credentials.creds
 ---
 apiVersion: v1
 kind: Service
@@ -156,7 +182,7 @@ spec:
             - configMapRef:
                 name: happy-wakey-runtime
           env:
-            - name: HAPPY_WAKEY_DATABASE_READ_URL
+            - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: happy-wakey-web-runtime
@@ -166,11 +192,13 @@ spec:
                 secretKeyRef:
                   name: happy-wakey-web-runtime
                   key: shared-auth-introspect-secret
-            - name: HAPPY_WAKEY_NATS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: happy-wakey-web-runtime
-                  key: nats-url
+          volumeMounts:
+            - name: api-tls
+              mountPath: /var/run/secrets/happy-wakey/api-tls
+              readOnly: true
+            - name: web-nats
+              mountPath: /var/run/secrets/happy-wakey/nats
+              readOnly: true
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -194,6 +222,21 @@ spec:
             limits:
               cpu: '1'
               memory: 512Mi
+      volumes:
+        - name: api-tls
+          secret:
+            secretName: happy-wakey-api-tls
+            defaultMode: 0400
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: web-nats
+          secret:
+            secretName: happy-wakey-web-nats
+            defaultMode: 0400
+            items:
+              - key: credentials
+                path: credentials.creds
 ---
 apiVersion: v1
 kind: Service

@@ -6,9 +6,32 @@ Cloudflare Worker code and Kubernetes/GitOps deployment contracts for the Happy 
 
 - `src/index.mjs` is a fail-closed Cloudflare edge Worker with bounded health/readiness responses and security headers.
 - `k8s/base/fleet.yaml` declares non-root API and web deployments, services, probes, resource bounds, disruption budgets, runtime secret references, the four interaction-mode endpoints, and default-deny network policy.
+- `nats/topology.json` is the declarative JetStream desired state: separate
+  file-backed request and response streams, a durable explicit-ack pull
+  consumer, bounded messages and retention, duplicate windows, and direct
+  response reads. It contains no credential material.
 - `wrangler.toml` contains non-secret Worker metadata only.
 
 The base intentionally contains no Secret objects and its default-deny policy blocks traffic until a reviewed environment overlay adds exact DNS, Shared Auth, PostgreSQL, NATS, ingress, API, and web rules. Deployment promotion must replace image tags with reviewed immutable digests. Do not claim this base alone is deployable production evidence.
+
+The environment overlay must also satisfy these transport prerequisites:
+
+- The web deployment selects one exact `HAPPY_WAKEY_INTERACTION_MODE`; there
+  is no automatic downgrade or cross-mode fallback.
+- `direct_db_read` uses the web runtime's database credential. That database
+  role must be read-only in PostgreSQL/CockroachDB in addition to the
+  application using only the lib-core read capability.
+- `stateless_https` requires the configured internal API hostname to terminate
+  TLS through the approved gateway or service mesh. The plain cluster Service
+  port is not a valid web API base.
+- `stateful_tls` uses the API certificate/key secret and a CA-only view of that
+  secret in the web pod. Every request frame is independently authenticated.
+- The topology provisioner applies `nats/topology.json` through the JetStream
+  management API before either application starts. Application identities may
+  get the named streams and consumer, publish to their exact subjects, and
+  read/ack as required, but may not create, update, delete, or purge topology.
+  API and web NATS credentials are separate secrets mounted at the same
+  credential-file path. Core NATS request/reply is not an allowed substitute.
 
 Customer and admin Shared Auth realms must use independent issuers, keys, databases, provider projects, cookies, service credentials, secret paths, and audit streams. Only the customer realm belongs in the Happy Wakey customer service overlay.
 
