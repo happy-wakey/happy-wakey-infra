@@ -1,0 +1,14 @@
+{
+  "name": "@happy-wakey/infra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare edge and Kubernetes deployment contracts for Happy Wakey",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "validate:k8s": "kubectl apply --dry-run=client -f k8s/base/fleet.yaml"
+  }
+}

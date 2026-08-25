@@ -1,0 +1,23 @@
+[package]
+org = "happy-wakey"
+name = "happy-wakey-infra"
+version = "0.1.0"
+description = "Cloudflare edge and Kubernetes deployment contracts for Happy Wakey"
+license = "MIT"
+keywords = ["cloudflare", "kubernetes", "nats", "gitops", "infrastructure"]
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/happy-wakey/happy-wakey-infra"
+
+[targets.repository]
+dir = "."
+adapter = "node"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", ".zed/**", "zed_modules/**", "node_modules/**", ".wrangler/**", "**/*.log", ".DS_Store"]
+
+[scripts]
+test = "node --test"
