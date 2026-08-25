@@ -37,5 +37,15 @@ jobs:
           /tmp/zed validate --require-lock
       - run: npm ci --ignore-scripts
       - run: npm test
-      - name: Validate Kubernetes objects without a cluster
-        run: kubectl apply --dry-run=client --validate=false -f k8s/base/fleet.yaml
+      - name: Validate Kubernetes document structure without a cluster
+        shell: ruby {0}
+        run: |
+          require 'yaml'
+          documents = YAML.load_stream(File.read('k8s/base/fleet.yaml'))
+          abort 'no Kubernetes objects found' if documents.empty?
+          documents.each do |document|
+            abort 'Kubernetes object is not a mapping' unless document.is_a?(Hash)
+            abort 'Kubernetes object is missing apiVersion' unless document['apiVersion']
+            abort 'Kubernetes object is missing kind' unless document['kind']
+            abort 'Kubernetes object is missing metadata.name' unless document.dig('metadata', 'name')
+          end
