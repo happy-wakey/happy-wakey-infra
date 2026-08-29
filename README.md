@@ -6,6 +6,12 @@ Cloudflare Worker code and Kubernetes/GitOps deployment contracts for the Happy 
 
 - `src/index.mjs` is a fail-closed Cloudflare edge Worker with bounded health/readiness responses and security headers.
 - `k8s/base/fleet.yaml` declares non-root API and web deployments, services, probes, resource bounds, disruption budgets, runtime secret references, the four interaction-mode endpoints, and default-deny network policy.
+- Each API and web pod includes `happy-wakey-sidecar` at exact source revision
+  `6bee12449fb421b142d3c5836bbc0547f805462a`. The sidecar binds only to
+  loopback, probes only its adjacent product process, reads Shared Auth and
+  Opto Sync authority URLs from the non-secret ConfigMap, and receives no
+  application credentials. Promotion must replace the source tag with the
+  reviewed immutable image digest produced from that revision.
 - `nats/topology.json` is the declarative JetStream desired state: separate
   file-backed request and response streams, a durable explicit-ack pull
   consumer, bounded messages and retention, duplicate windows, and direct
@@ -13,6 +19,11 @@ Cloudflare Worker code and Kubernetes/GitOps deployment contracts for the Happy 
 - `wrangler.toml` contains non-secret Worker metadata only.
 
 The base intentionally contains no Secret objects and its default-deny policy blocks traffic until a reviewed environment overlay adds exact DNS, Shared Auth, PostgreSQL, NATS, ingress, API, and web rules. Deployment promotion must replace image tags with reviewed immutable digests. Do not claim this base alone is deployable production evidence.
+
+The sidecar intentionally has startup and liveness exec probes but no
+Kubernetes readiness probe. Product readiness remains owned by the product
+container, while the sidecar's loopback `/readyz` exposes its reducer state for
+diagnosis and independent monitoring.
 
 The environment overlay must also satisfy these transport prerequisites:
 
