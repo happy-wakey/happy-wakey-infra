@@ -64,3 +64,32 @@ test('JetStream desired state is durable, bounded, and credential-free', async (
   assert.equal(serialized.includes('owner_id'), false);
   assert.equal(serialized.includes('reply_to'), false);
 });
+
+test('API and web pods inherit the exact credential-free sidecar contract', async () => {
+  const manifest = await readFile(
+    new URL('../k8s/base/fleet.yaml', import.meta.url),
+    'utf8',
+  );
+  const exactImage =
+    'ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-7dd04af4b5720656b488f21eeefbd4273e1371f6';
+  assert.equal(manifest.split(`image: ${exactImage}`).length - 1, 2);
+  assert.equal(manifest.split('- name: sidecar').length - 1, 2);
+  assert.equal(
+    manifest.split('command: [/usr/local/bin/happy-wakey-sidecar, probe-healthz]')
+      .length - 1,
+    4,
+  );
+  assert.equal(manifest.split('value: 127.0.0.1:9090').length - 1, 2);
+  assert.equal(manifest.split('value: api').length - 1, 1);
+  assert.equal(manifest.split('value: web').length - 1, 1);
+  assert.equal(manifest.includes('HAPPY_WAKEY_SIDECAR_ALLOW_NON_LOOPBACK'), false);
+
+  for (const block of manifest.split('- name: sidecar').slice(1)) {
+    const sidecar = block.split('\n      volumes:')[0];
+    assert.equal(sidecar.includes('secretKeyRef:'), false);
+    assert.equal(sidecar.includes('readinessProbe:'), false);
+    assert.equal(sidecar.includes('allowPrivilegeEscalation: false'), true);
+    assert.equal(sidecar.includes('readOnlyRootFilesystem: true'), true);
+    assert.equal(sidecar.includes('runAsUser: 65532'), true);
+  }
+});
