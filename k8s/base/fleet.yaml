@@ -121,7 +121,7 @@ spec:
               cpu: '1'
               memory: 512Mi
         - name: sidecar
-          image: ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-7dd04af05445deb2d30d457a5344ed06b612fea7
+          image: ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-6bee12449fb421b142d3c5836bbc0547f805462a
           imagePullPolicy: IfNotPresent
           env:
             - name: HAPPY_WAKEY_SIDECAR_BIND
@@ -271,7 +271,7 @@ spec:
               cpu: '1'
               memory: 512Mi
         - name: sidecar
-          image: ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-7dd04af05445deb2d30d457a5344ed06b612fea7
+          image: ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-6bee12449fb421b142d3c5836bbc0547f805462a
           imagePullPolicy: IfNotPresent
           env:
             - name: HAPPY_WAKEY_SIDECAR_BIND
