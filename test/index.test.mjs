@@ -71,7 +71,7 @@ test('API and web pods inherit the exact credential-free sidecar contract', asyn
     'utf8',
   );
   const exactImage =
-    'ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-7dd04af4b5720656b488f21eeefbd4273e1371f6';
+    'ghcr.io/happy-wakey/happy-wakey-sidecar.rs:git-7dd04af05445deb2d30d457a5344ed06b612fea7';
   assert.equal(manifest.split(`image: ${exactImage}`).length - 1, 2);
   assert.equal(manifest.split('- name: sidecar').length - 1, 2);
   assert.equal(
