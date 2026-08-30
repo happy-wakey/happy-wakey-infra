@@ -9,6 +9,16 @@
   },
   "scripts": {
     "test": "node --test",
-    "validate:k8s": "kubectl apply --dry-run=client -f k8s/base/fleet.yaml"
+    "validate:k8s": "kubectl apply --dry-run=client -f k8s/base/fleet.yaml",
+    "lint:ores": "if [ -f .ores-lint/lint.sh ]; then sh .ores-lint/lint.sh; else echo 'ores-lint not installed'; fi",
+    "prepublishOnly": "npm run lint:ores"
+  },
+  "oresLint": {
+    "note": "Declared, not installed. ores-lint resolves these from a global install - see .ores-lint/README.md",
+    "requires": {
+      "eslint": ">=9",
+      "typescript-eslint": ">=8 (optional; without it .ts files are skipped)"
+    },
+    "install": "npm i -g eslint typescript-eslint"
   }
 }

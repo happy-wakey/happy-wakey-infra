@@ -4,7 +4,7 @@ Cloudflare Worker code and Kubernetes/GitOps deployment contracts for the Happy 
 
 ## Contents
 
-- `src/index.mjs` is a fail-closed Cloudflare edge Worker with bounded health/readiness responses and security headers.
+- `src/index.mjs` is a fail-closed Cloudflare edge Worker with bounded health/readiness responses and security headers. Its request classifier is a pure function from an explicit method/path input to an immutable response description; the Worker adapter owns URL parsing and `Response` construction at the effect boundary.
 - `k8s/base/fleet.yaml` declares non-root API and web deployments, services, probes, resource bounds, disruption budgets, runtime secret references, the four interaction-mode endpoints, and default-deny network policy.
 - Each API and web pod includes `happy-wakey-sidecar` at exact source revision
   `6bee12449fb421b142d3c5836bbc0547f805462a`. The sidecar binds only to
@@ -58,3 +58,5 @@ kubectl apply --dry-run=client -f k8s/base/fleet.yaml
 ```
 
 Cloudflare and Kubernetes credentials belong in the approved secret manager and deployment identity. Never commit them, pass them as command-line flags, or render them into Worker variables, manifests, images, logs, or telemetry.
+
+RxJS is intentionally not used in this Worker. A single request has no continuing event stream, cancellation graph, fan-out, or replay requirement; introducing an observable would add state and lifecycle surface without improving semantics. RxJS remains appropriate in the TypeScript client, where cold requests, polling, cancellation, and overlap prevention are real stream concerns.

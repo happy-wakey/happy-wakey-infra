@@ -6,16 +6,39 @@ const SECURITY_HEADERS = Object.freeze({
   'x-content-type-options': 'nosniff',
 });
 
+const ROUTES = Object.freeze({
+  'GET /healthz': Object.freeze({
+    status: 200,
+    body: Object.freeze({ status: 'ok', service: 'happy-wakey-edge' }),
+  }),
+  'GET /readyz': Object.freeze({
+    status: 200,
+    body: Object.freeze({ status: 'ready', service: 'happy-wakey-edge' }),
+  }),
+});
+
+const NOT_FOUND = Object.freeze({
+  status: 404,
+  body: Object.freeze({ error: 'not_found' }),
+});
+
+/**
+ * Purely classify an HTTP request into one immutable response description.
+ * Query strings and request bodies are intentionally excluded from the input,
+ * so they cannot leak into a bounded diagnostic response.
+ */
+export function routeRequest({ method, pathname }) {
+  return ROUTES[`${method} ${pathname}`] ?? NOT_FOUND;
+}
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    if (request.method === 'GET' && url.pathname === '/healthz') {
-      return json({ status: 'ok', service: 'happy-wakey-edge' }, 200);
-    }
-    if (request.method === 'GET' && url.pathname === '/readyz') {
-      return json({ status: 'ready', service: 'happy-wakey-edge' }, 200);
-    }
-    return json({ error: 'not_found' }, 404);
+    const description = routeRequest({
+      method: request.method,
+      pathname: url.pathname,
+    });
+    return json(description.body, description.status);
   },
 };
 

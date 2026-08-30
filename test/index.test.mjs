@@ -2,7 +2,21 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import worker from '../src/index.mjs';
+import worker, { routeRequest } from '../src/index.mjs';
+
+test('route classification is a pure, immutable, fail-closed projection', () => {
+  const input = Object.freeze({ method: 'GET', pathname: '/readyz' });
+  const first = routeRequest(input);
+  const second = routeRequest(input);
+  assert.strictEqual(first, second);
+  assert.equal(Object.isFrozen(first), true);
+  assert.equal(Object.isFrozen(first.body), true);
+
+  assert.deepEqual(routeRequest({ method: 'POST', pathname: '/readyz' }), {
+    status: 404,
+    body: { error: 'not_found' },
+  });
+});
 
 test('health is bounded, non-cacheable JSON', async () => {
   const response = await worker.fetch(new Request('https://edge.example.test/healthz'));
