@@ -1,0 +1,53 @@
+name: OCI toolkit contract
+
+on:
+  pull_request:
+    paths:
+      - "crossplane/oci-registries.example.yaml"
+      - "docker/**"
+      - "docs/OCI_IMAGES.md"
+      - "scripts/oci/**"
+      - "terraform/modules/oci-registries/**"
+      - ".github/workflows/oci-toolkit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crossplane/oci-registries.example.yaml"
+      - "docker/**"
+      - "docs/OCI_IMAGES.md"
+      - "scripts/oci/**"
+      - "terraform/modules/oci-registries/**"
+      - ".github/workflows/oci-toolkit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.9.8
+      - name: Verify pinned publisher
+        run: |
+          bash -n scripts/oci/build-and-push.sh
+          OCI_TOOLKIT_VERIFY_ONLY=true scripts/oci/build-and-push.sh
+      - name: Validate registry adapter
+        run: |
+          terraform -chdir=terraform/modules/oci-registries fmt -diff -check
+          terraform -chdir=terraform/modules/oci-registries init -backend=false -input=false
+          terraform -chdir=terraform/modules/oci-registries validate
+      - name: Parse Crossplane resources
+        run: ruby -e 'require "yaml"; docs = YAML.load_stream(File.read("crossplane/oci-registries.example.yaml")); abort "expected three resources" unless docs.compact.length == 3'
+      - name: Check multi-stage image templates
+        run: |
+          grep -F 'FROM --platform=$TARGETPLATFORM' docker/Dockerfile.rust-service
+          grep -F 'FROM --platform=$TARGETPLATFORM' docker/Dockerfile.rust-lambda
+          grep -F 'public.ecr.aws/lambda/provided:al2023' docker/Dockerfile.rust-lambda
+          grep -F 'public.ecr.aws/lambda/nodejs:22' docker/Dockerfile.node-lambda
