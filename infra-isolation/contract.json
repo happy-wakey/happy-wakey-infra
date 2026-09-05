@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "githubOrg": "happy-wakey",
+  "expectedState": "paused",
+  "mapping": {
+    "neonOrg": "org-steep-glade-59988194",
+    "supabaseOrg": "xeqtjjohbcegzpnwhhfl",
+    "cloudflareDomain": null,
+    "slackChannel": "C0BRMDS0Q78",
+    "gcpProject": "happy-wakey",
+    "linearProject": "3790cb4a-a3f7-419f-9444-fe900ad3f3e7"
+  },
+  "areas": [
+    {
+      "role": "canonical",
+      "vpcId": null,
+      "region": null,
+      "sourceSecurityGroup": null,
+      "workloadIdentity": null,
+      "credentialRef": null
+    },
+    {
+      "role": "auth",
+      "vpcId": null,
+      "region": null,
+      "sourceSecurityGroup": null,
+      "workloadIdentity": null,
+      "credentialRef": null
+    },
+    {
+      "role": "admin",
+      "vpcId": null,
+      "region": null,
+      "sourceSecurityGroup": null,
+      "workloadIdentity": null,
+      "credentialRef": null
+    }
+  ],
+  "projects": [
+    {
+      "provider": "neon",
+      "role": "canonical",
+      "projectId": "red-cloud-17273593",
+      "region": "us-east-1",
+      "endpointIds": null
+    },
+    {
+      "provider": "neon",
+      "role": "auth",
+      "projectId": "shy-salad-94301621",
+      "region": "us-east-1",
+      "endpointIds": null
+    },
+    {
+      "provider": "neon",
+      "role": "admin",
+      "projectId": "fragrant-butterfly-59948790",
+      "region": "us-east-1",
+      "endpointIds": null
+    },
+    {
+      "provider": "supabase",
+      "role": "canonical",
+      "projectId": "pyfilctseekeqqjfldgr",
+      "region": "us-east-2",
+      "endpointIds": null
+    },
+    {
+      "provider": "supabase",
+      "role": "auth",
+      "projectId": "iymscyupdntmiegeanxc",
+      "region": "us-east-2",
+      "endpointIds": null
+    },
+    {
+      "provider": "supabase",
+      "role": "admin",
+      "projectId": null,
+      "region": null,
+      "endpointIds": null
+    }
+  ]
+}
