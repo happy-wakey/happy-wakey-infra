@@ -1,0 +1,70 @@
+{
+  "$schema": "https://github.com/ORESoftware/k8s-libs-and-shared-defs/supabase-defs/schemas/db-providers.schema.json",
+  "schemaVersion": "1.0.0",
+  "githubOrg": "happy-wakey",
+  "gcpProject": "happy-wakey",
+  "slackChannel": "#happy-wakey",
+  "productionBranch": "main",
+  "contractSource": {
+    "repository": "happy-wakey/happy-wakey-orm-core",
+    "path": "migrations",
+    "zedPackage": "happy-wakey/happy-wakey-orm-core"
+  },
+  "supabase": {
+    "orgRef": "zmkmcdyrryxxhleytdho",
+    "orgDisplayName": "oresoftware",
+    "sharedOrg": "oresoftware",
+    "githubApp": {
+      "supabaseChangesOnly": true,
+      "deployToProduction": false,
+      "automaticBranching": true
+    },
+    "projects": [
+      {
+        "ref": "pendingcanonicalproj",
+        "slug": "canonical",
+        "role": "canonical",
+        "workingDirectory": "supabase/pendingcanonicalproj",
+        "schemaNamespace": "happy_wakey",
+        "migrationTarget": "own-org-later",
+        "state": "planned"
+      },
+      {
+        "ref": "szzbuljocwprjhaqnbvb",
+        "slug": "auth",
+        "role": "auth",
+        "authParent": "child",
+        "workingDirectory": "supabase/szzbuljocwprjhaqnbvb",
+        "schemaNamespace": "happy_wakey",
+        "migrationTarget": "own-org-later",
+        "state": "planned"
+      }
+    ]
+  },
+  "neon": {
+    "orgId": "org-happy-wakey",
+    "projects": [
+      {
+        "id": "happy-wakey-prod",
+        "slug": "prod",
+        "directory": "neon/happy-wakey-prod",
+        "region": "aws-us-east-1",
+        "databases": [
+          {
+            "name": "canonical",
+            "role": "canonical",
+            "owner": "happy_wakey_app"
+          },
+          {
+            "name": "auth",
+            "role": "auth",
+            "authParent": "child",
+            "owner": "happy_wakey_auth"
+          }
+        ],
+        "previewBranches": true,
+        "state": "planned"
+      }
+    ]
+  }
+}
