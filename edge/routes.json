@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "happy-wakey.edge-routes.v1",
+  "zone": "hawky.pro",
+  "hosts": {
+    "hawky.pro": "marketing",
+    "www.hawky.pro": "marketing",
+    "app.hawky.pro": "public-web",
+    "user.hawky.pro": "public-web-b2c",
+    "org.hawky.pro": "public-web-b2b",
+    "api.hawky.pro": "public-api",
+    "main.hawky.pro": "public-web-company-deeplink",
+    "admin.hawky.pro": "private-admin-web",
+    "admin-api.hawky.pro": "private-admin-api",
+    "api-admin.hawky.pro": "private-admin-api-alias",
+    "m.hawky.pro": "public-mobile-web"
+  },
+  "realtime": {
+    "path": "/v1/realtime",
+    "authorization": "shared-auth-service-binding",
+    "originPolicy": "exact-request-host",
+    "coordination": "durable-object-per-tenant",
+    "hibernation": true,
+    "maxConnectionsPerTenantObject": 128,
+    "maxMessageBytes": 32768,
+    "sessionMaximumSeconds": 900
+  },
+  "admin": {
+    "cloudflareAccessRequired": true,
+    "applicationAuthorization": "shared-auth-admin-plus-admin-db",
+    "publicDatabaseCredentials": false
+  },
+  "vectors": {
+    "binding": "BRIEFING_VECTORS",
+    "tenantMetadataFilterRequired": true,
+    "sourceOfTruth": "canonical-postgres",
+    "causalClaimsFromCorrelation": false
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "ores.gcp-cloud-run.org.v1",
+  "organization": "happy-wakey",
+  "infraRepository": "happy-wakey/happy-wakey-infra",
+  "canonicalDeploymentRepository": "ORESoftware/k8s-cluster",
+  "centralModulePath": "gcp/cloud-run-rust-service",
+  "gcp": { "projectId": "happy-wakey", "region": "us-central1", "state": "planned" },
+  "services": [
+    { "role": "web-server", "repository": "happy-wakey/happy-wakey-web-server.rs", "serviceName": "happy-wakey-web-server", "audience": "public-through-cloudflare", "repositoryState": "present" },
+    { "role": "api-server", "repository": "happy-wakey/happy-wakey-api-server.rs", "serviceName": "happy-wakey-api-server", "audience": "public-through-cloudflare", "repositoryState": "present" },
+    { "role": "admin-web-server", "repository": "happy-wakey/happy-wakey-admin-web-server.rs", "serviceName": "happy-wakey-admin-web-server", "audience": "cloudflare-access-and-private-vpc", "repositoryState": "present" },
+    { "role": "admin-api-server", "repository": "happy-wakey/happy-wakey-admin-api-server.rs", "serviceName": "happy-wakey-admin-api-server", "audience": "cloudflare-access-and-private-vpc", "repositoryState": "present" },
+    { "role": "mcp-server", "repository": "happy-wakey/happy-wakey-mcp-server.rs", "serviceName": "happy-wakey-mcp-server", "audience": "private-vpc-only", "repositoryState": "present" },
+    { "role": "lambda-dispatcher", "repository": "happy-wakey/happy-wakey-lambdas", "serviceName": "happy-wakey-lambda-dispatcher", "audience": "event-only", "repositoryState": "present" }
+  ],
+  "probes": {
+    "startup": { "path": "/readyz", "failureStatus": 503 },
+    "liveness": { "path": "/healthz", "dependencyFree": true },
+    "readiness": { "path": "/readyz", "failureStatus": 503 },
+    "buildIdentity": { "path": "/version", "cacheControl": "no-store" },
+    "metrics": { "path": "/metrics", "exposure": "private" }
+  },
+  "runtime": { "minInstances": 0, "maxInstances": 10, "imagePolicy": "digest-only", "serviceAccountPolicy": "per-service", "directPublicOrigin": false },
+  "network": {
+    "publicPlane": "canonical-vpc-connector",
+    "adminPlane": "admin-vpc-connector",
+    "authPlane": "auth-vpc-connector",
+    "adminMcpColocation": true,
+    "crossPlaneDatabaseRoutes": false
+  },
+  "kubernetes": { "startupPath": "/healthz", "livenessPath": "/healthz", "readinessPath": "/readyz" },
+  "providers": { "source": ".db-providers.json", "state": "planned-or-provider-verified-only" }
+}

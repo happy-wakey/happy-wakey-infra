@@ -3,6 +3,50 @@ main = "src/index.mjs"
 compatibility_date = "2026-08-25"
 workers_dev = false
 
+[[routes]]
+pattern = "hawky.pro/*"
+zone_name = "hawky.pro"
+
+[[routes]]
+pattern = "*.hawky.pro/*"
+zone_name = "hawky.pro"
+
+[[durable_objects.bindings]]
+name = "REALTIME_HUBS"
+class_name = "RealtimeHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RealtimeHub"]
+
+[[vectorize]]
+binding = "BRIEFING_VECTORS"
+index_name = "happy-wakey-briefing-v1"
+
+[[services]]
+binding = "MARKETING_SITE"
+service = "happy-wakey-marketing"
+
+[[services]]
+binding = "PUBLIC_WEB"
+service = "happy-wakey-web"
+
+[[services]]
+binding = "PUBLIC_API"
+service = "happy-wakey-api"
+
+[[services]]
+binding = "ADMIN_WEB"
+service = "happy-wakey-admin-web"
+
+[[services]]
+binding = "ADMIN_API"
+service = "happy-wakey-admin-api"
+
+[[services]]
+binding = "SHARED_AUTH"
+service = "shared-auth-customer"
+
 [observability]
 enabled = true
 head_sampling_rate = 0.1

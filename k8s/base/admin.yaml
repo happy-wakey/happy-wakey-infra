@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: happy-wakey-admin
+  labels:
+    app.kubernetes.io/part-of: happy-wakey
+    happy-wakey.oresoftware.com/plane: admin
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: happy-wakey-admin-runtime
+  namespace: happy-wakey-admin
+data:
+  ADMIN_API_BASE_URL: https://happy-wakey-admin-api.happy-wakey-admin.svc.cluster.local
+  ADMIN_MCP_BASE_URL: https://happy-wakey-mcp.happy-wakey-admin.svc.cluster.local
+  SHARED_AUTH_ADMIN_BASE_URL: https://shared-auth-admin.happy-wakey-auth.svc.cluster.local
+  SHARED_AUTH_ADMIN_ISSUER: https://admin-auth.oresoftware.com
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: happy-wakey-admin-web
+  namespace: happy-wakey-admin
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: happy-wakey-admin-api
+  namespace: happy-wakey-admin
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: happy-wakey-mcp
+  namespace: happy-wakey-admin
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: happy-wakey-admin-web
+  namespace: happy-wakey-admin
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: happy-wakey-admin-web }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: happy-wakey-admin-web }
+      annotations: { happy-wakey.oresoftware.com/mtls-required: "true" }
+    spec:
+      serviceAccountName: happy-wakey-admin-web
+      securityContext: { seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: admin-web
+          image: ghcr.io/happy-wakey/happy-wakey-admin-web-server.rs:replace-with-digest
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: happy-wakey-admin-runtime } }]
+          env:
+            - name: ADMIN_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: happy-wakey-admin-web-runtime, key: database-read-url } }
+          readinessProbe: { httpGet: { path: /readyz, port: http } }
+          livenessProbe: { httpGet: { path: /healthz, port: http } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: happy-wakey-admin-api
+  namespace: happy-wakey-admin
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: happy-wakey-admin-api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: happy-wakey-admin-api }
+      annotations: { happy-wakey.oresoftware.com/mtls-required: "true" }
+    spec:
+      serviceAccountName: happy-wakey-admin-api
+      securityContext: { seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: admin-api
+          image: ghcr.io/happy-wakey/happy-wakey-admin-api-server.rs:replace-with-digest
+          ports: [{ name: http, containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: happy-wakey-admin-runtime } }]
+          env:
+            - name: ADMIN_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: happy-wakey-admin-api-runtime, key: database-write-url } }
+          readinessProbe: { httpGet: { path: /readyz, port: http } }
+          livenessProbe: { httpGet: { path: /healthz, port: http } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: happy-wakey-mcp
+  namespace: happy-wakey-admin
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app.kubernetes.io/name: happy-wakey-mcp }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: happy-wakey-mcp }
+      annotations: { happy-wakey.oresoftware.com/mtls-required: "true" }
+    spec:
+      serviceAccountName: happy-wakey-mcp
+      securityContext: { seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: mcp
+          image: ghcr.io/happy-wakey/happy-wakey-mcp-server.rs:replace-with-digest
+          ports: [{ name: https, containerPort: 8790 }]
+          envFrom: [{ configMapRef: { name: happy-wakey-admin-runtime } }]
+          env:
+            - name: ORE_MCP_HTTP_BIND
+              value: 0.0.0.0:8790
+            - name: MCP_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: happy-wakey-mcp-runtime, key: database-read-url } }
+          readinessProbe: { httpGet: { path: /readyz, port: https } }
+          livenessProbe: { httpGet: { path: /healthz, port: https } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: "1", memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: happy-wakey-admin-web, namespace: happy-wakey-admin }
+spec:
+  selector: { app.kubernetes.io/name: happy-wakey-admin-web }
+  ports: [{ name: https, port: 443, targetPort: http }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: happy-wakey-admin-api, namespace: happy-wakey-admin }
+spec:
+  selector: { app.kubernetes.io/name: happy-wakey-admin-api }
+  ports: [{ name: https, port: 443, targetPort: http }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: happy-wakey-mcp, namespace: happy-wakey-admin }
+spec:
+  selector: { app.kubernetes.io/name: happy-wakey-mcp }
+  ports: [{ name: https, port: 443, targetPort: https }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny, namespace: happy-wakey-admin }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-admin-service-mesh, namespace: happy-wakey-admin }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: happy-wakey-admin }
+      ports:
+        - { protocol: TCP, port: 8080 }
+        - { protocol: TCP, port: 8790 }
+    - from:
+        - namespaceSelector:
+            matchLabels: { happy-wakey.oresoftware.com/ingress-role: cloudflare-access }
+      ports: [{ protocol: TCP, port: 8080 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-admin-dns-and-private-egress, namespace: happy-wakey-admin }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+      ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
+    - to:
+        - namespaceSelector:
+            matchLabels: { happy-wakey.oresoftware.com/plane: admin }
+      ports: [{ protocol: TCP, port: 8080 }, { protocol: TCP, port: 8790 }, { protocol: TCP, port: 5432 }, { protocol: TCP, port: 6543 }]
+    - to:
+        - namespaceSelector:
+            matchLabels: { happy-wakey.oresoftware.com/plane: auth }
+      ports: [{ protocol: TCP, port: 443 }]
