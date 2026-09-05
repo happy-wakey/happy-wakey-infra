@@ -60,3 +60,12 @@ kubectl apply --dry-run=client -f k8s/base/fleet.yaml
 Cloudflare and Kubernetes credentials belong in the approved secret manager and deployment identity. Never commit them, pass them as command-line flags, or render them into Worker variables, manifests, images, logs, or telemetry.
 
 RxJS is intentionally not used in this Worker. A single request has no continuing event stream, cancellation graph, fan-out, or replay requirement; introducing an observable would add state and lifecycle surface without improving semantics. RxJS remains appropriate in the TypeScript client, where cold requests, polling, cancellation, and overlap prevention are real stream concerns.
+
+
+## Database isolation tests
+
+Run `npm ci --ignore-scripts && npm test` in [`infra-isolation/`](infra-isolation/README.md)
+for the canonical/auth/admin infrastructure contract and adversarial tests.
+The dedicated GitHub Actions check is offline; live isolation acceptance requires
+fresh provider/AWS evidence and explicitly authorized read-only probes. Missing
+projects, private endpoints, or evidence remain blocked rather than passing.
