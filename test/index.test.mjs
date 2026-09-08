@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import worker, { routeRequest } from '../src/index.mjs';
+import worker, {
+  routeEdgeRequest,
+  routeRequest,
+  validRealtimeIdentity,
+} from '../src/index.mjs';
 
 test('route classification is a pure, immutable, fail-closed projection', () => {
   const input = Object.freeze({ method: 'GET', pathname: '/readyz' });
@@ -35,6 +39,94 @@ test('unknown routes fail closed without reflecting request data', async () => {
   );
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: 'not_found' });
+});
+
+test('hawky host routing is explicit and admin origins fail closed', async () => {
+  assert.deepEqual(
+    routeEdgeRequest({ method: 'GET', hostname: 'app.hawky.pro', pathname: '/' }),
+    { action: 'proxy', binding: 'PUBLIC_WEB', audience: 'public', alias: false },
+  );
+  assert.deepEqual(
+    routeEdgeRequest({
+      method: 'GET',
+      hostname: 'user.hawky.pro',
+      pathname: '/v1/realtime',
+      upgrade: 'websocket',
+    }),
+    { action: 'realtime', audience: 'public' },
+  );
+  assert.deepEqual(
+    routeEdgeRequest({ method: 'GET', hostname: 'api-admin.hawky.pro', pathname: '/' }),
+    { action: 'proxy', binding: 'ADMIN_API', audience: 'admin', alias: true },
+  );
+  assert.equal(
+    routeEdgeRequest({ method: 'GET', hostname: 'feeds.hawky.pro', pathname: '/' }).status,
+    404,
+  );
+
+  const response = await worker.fetch(
+    new Request('https://admin.hawky.pro/'),
+    { ADMIN_WEB: { fetch: () => new Response('unexpected') } },
+  );
+  assert.equal(response.status, 401);
+});
+
+test('realtime authorization claims are bounded and short lived', () => {
+  const now = Date.parse('2026-09-05T12:00:00Z');
+  assert.equal(
+    validRealtimeIdentity(
+      {
+        tenant_id: 'org_123',
+        subject: 'user_456',
+        expires_at: '2026-09-05T12:10:00Z',
+      },
+      now,
+    ),
+    true,
+  );
+  assert.equal(
+    validRealtimeIdentity(
+      {
+        tenant_id: 'org_123',
+        subject: 'user_456',
+        expires_at: '2026-09-05T12:30:00Z',
+      },
+      now,
+    ),
+    false,
+  );
+});
+
+test('deployment inventory includes every public, admin and event role', async () => {
+  const deployment = JSON.parse(
+    await readFile(new URL('../deploy/gcp-cloud-run.json', import.meta.url), 'utf8'),
+  );
+  assert.deepEqual(
+    deployment.services.map((service) => service.role).sort(),
+    [
+      'admin-api-server',
+      'admin-web-server',
+      'api-server',
+      'lambda-dispatcher',
+      'mcp-server',
+      'web-server',
+    ],
+  );
+  assert.equal(deployment.runtime.imagePolicy, 'digest-only');
+  assert.equal(deployment.runtime.directPublicOrigin, false);
+  assert.equal(deployment.network.adminMcpColocation, true);
+});
+
+test('admin base has no secrets and requires private mTLS admission', async () => {
+  const manifest = await readFile(
+    new URL('../k8s/base/admin.yaml', import.meta.url),
+    'utf8',
+  );
+  assert.equal(manifest.includes('kind: Secret'), false);
+  assert.equal(manifest.includes('mtls-required: "true"'), true);
+  assert.equal(manifest.includes('cloudflare-access'), true);
+  assert.equal(manifest.includes('happy-wakey.oresoftware.com/plane: admin'), true);
+  assert.equal(manifest.includes('automountServiceAccountToken: false'), true);
 });
 
 test('JetStream desired state is durable, bounded, and credential-free', async () => {

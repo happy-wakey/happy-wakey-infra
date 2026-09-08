@@ -17,6 +17,21 @@ Cloudflare Worker code and Kubernetes/GitOps deployment contracts for the Happy 
   consumer, bounded messages and retention, duplicate windows, and direct
   response reads. It contains no credential material.
 - `wrangler.toml` contains non-secret Worker metadata only.
+- `edge/routes.json` is the complete `hawky.pro` hostname contract. The Worker
+  uses explicit service bindings, exact-origin Shared Auth admission and a
+  hibernating Durable Object per tenant for WebSocket delivery. Vectorize is a
+  retrieval index only; canonical Postgres remains the source of truth and
+  every query must include tenant metadata.
+- `k8s/base/admin.yaml` isolates admin web, admin API and MCP in one private
+  admin plane. Cloudflare Access is an outer gate; Shared Auth plus the admin
+  database remain the application authorization source. No public service is
+  allowed to reach the admin database. The base declares plain loopback probes
+  but requires the environment overlay to inject an mTLS service mesh before
+  any service is admitted; the `https` Service ports are invalid evidence on
+  their own.
+- `deploy/gcp-cloud-run.json` salvages and expands the Cloud Run desired state
+  from #4 across the public, admin, MCP and event roles. It is a contract, not
+  deployment evidence.
 
 The base intentionally contains no Secret objects and its default-deny policy blocks traffic until a reviewed environment overlay adds exact DNS, Shared Auth, PostgreSQL, NATS, ingress, API, and web rules. Deployment promotion must replace image tags with reviewed immutable digests. Do not claim this base alone is deployable production evidence.
 
@@ -45,6 +60,11 @@ The environment overlay must also satisfy these transport prerequisites:
   credential-file path. Core NATS request/reply is not an allowed substitute.
 
 Customer and admin Shared Auth realms must use independent issuers, keys, databases, provider projects, cookies, service credentials, secret paths, and audit streams. Only the customer realm belongs in the Happy Wakey customer service overlay.
+
+`admin-api.hawky.pro` is the user-requested canonical admin API host.
+`api-admin.hawky.pro` is retained only as a compatibility alias for the wider
+ORESoftware naming convention; it terminates at the same Cloudflare Access
+policy and never redirects to or from an untrusted URL.
 
 ## Dependency management and validation
 

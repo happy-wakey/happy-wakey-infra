@@ -1,4 +1,6 @@
 node_modules/
+tmp/
+temp/
 .wrangler/
 .zed/
 zed_modules/
