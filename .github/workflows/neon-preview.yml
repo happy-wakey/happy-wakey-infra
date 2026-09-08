@@ -1,16 +1,33 @@
 name: neon-preview
+
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
     paths: ["neon/**", ".db-providers.json"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   branch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
       - if: github.event.action != 'closed'
-        uses: neondatabase/create-branch-action@v5
-        with: { project_id: ${{ vars.NEON_PROJECT_ID }}, branch_name: preview/pr-${{ github.event.number }}-${{ github.head_ref }}, api_key: ${{ secrets.NEON_API_KEY }} }
+        uses: neondatabase/create-branch-action@34f619c41c6e67b4f2f13f1c6eae90827a5f2cf4 # v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          username: ${{ vars.NEON_DATABASE_USER }}
+          api_key: ${{ secrets.NEON_API_KEY }}
       - if: github.event.action == 'closed'
-        uses: neondatabase/delete-branch-action@v3
-        with: { project_id: ${{ vars.NEON_PROJECT_ID }}, branch: preview/pr-${{ github.event.number }}-${{ github.head_ref }}, api_key: ${{ secrets.NEON_API_KEY }} }
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
