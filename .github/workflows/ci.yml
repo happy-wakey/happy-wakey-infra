@@ -37,6 +37,13 @@ jobs:
           /tmp/zed validate --require-lock
       - run: npm ci --ignore-scripts
       - run: npm test
+      - name: Parse every GitHub Actions workflow
+        shell: ruby {0}
+        run: |
+          require 'yaml'
+          paths = Dir['.github/workflows/*.{yml,yaml}']
+          abort 'no workflows found' if paths.empty?
+          paths.each { |path| YAML.parse_file(path) }
       - name: Validate Kubernetes document structure without a cluster
         shell: ruby {0}
         run: |
