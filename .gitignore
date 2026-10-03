@@ -6,3 +6,7 @@ zed_modules/
 .env.*
 *.log
 .DS_Store
+
+# Local temporary directories and repository-owned worktrees
+tmp/
+temp/
