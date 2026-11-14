@@ -99,6 +99,37 @@ function hasCloudflareAccessIdentity(request) {
   );
 }
 
+// Streaming byte limit avoids buffering arbitrarily large identity responses.
+export async function readBoundedAuthResponse(response, limit = 4096) {
+  if (!response.body || !Number.isSafeInteger(limit) || limit < 1) return null;
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 async function openRealtime(request, env, url) {
   if (!env?.SHARED_AUTH || !env?.REALTIME_HUBS) {
     return json({ error: 'realtime_unavailable' }, 503);
@@ -120,8 +151,8 @@ async function openRealtime(request, env, url) {
     }),
   );
   if (!authResponse.ok) return json({ error: 'authentication_required' }, 401);
-  const raw = await authResponse.text();
-  if (raw.length > 4096) return json({ error: 'invalid_auth_response' }, 502);
+  const raw = await readBoundedAuthResponse(authResponse);
+  if (raw === null) return json({ error: 'invalid_auth_response' }, 502);
   let identity;
   try {
     identity = JSON.parse(raw);
