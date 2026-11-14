@@ -5,6 +5,7 @@ import test from 'node:test';
 import worker, {
   routeEdgeRequest,
   routeRequest,
+  readBoundedAuthResponse,
   validRealtimeIdentity,
 } from '../src/index.mjs';
 
@@ -198,4 +199,12 @@ test('API and web pods inherit the exact credential-free sidecar contract', asyn
     assert.equal(sidecar.includes('readOnlyRootFilesystem: true'), true);
     assert.equal(sidecar.includes('runAsUser: 65532'), true);
   }
+});
+
+test('realtime identity reader enforces byte limits before buffering', async () => {
+  const valid = new Response('{"active":true}');
+  assert.equal(await readBoundedAuthResponse(valid, 64), '{"active":true}');
+  assert.equal(await readBoundedAuthResponse(new Response('x'.repeat(65)), 64), null);
+  assert.equal(await readBoundedAuthResponse(new Response('é'.repeat(33)), 64), null);
+  assert.equal(await readBoundedAuthResponse(new Response('x'), 0), null);
 });
